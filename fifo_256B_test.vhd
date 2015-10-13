@@ -55,7 +55,7 @@ ARCHITECTURE behavior OF fifo_test IS
 BEGIN
  
 	-- Instantiate the Unit Under Test (UUT)
-   uut: entity work.fifo_256B PORT MAP (
+   uut: entity work.fifo PORT MAP (
           clk => clk,
           rst => rst,
           input => input,
@@ -81,19 +81,29 @@ BEGIN
 	begin
 		wait for clk_period*10; -- reset
 		we <= '1';
-		for i in 1 to 257 loop
-			counter := counter + 1;
-			input <= std_logic_vector(counter);
+		for i in 1 to 260 loop
+			if full = '0' then
+				input <= std_logic_vector(counter);
+				counter := counter + 1;
+			else
+				we <= '0';
+			end if;
 			wait for clk_period;
 		end loop;
 		we <= '0';
 		counter := "00000000";
+		
 		wait for clk_period*5;
+		
 		re <= '1';
 		for i in 1 to 260 loop
-			counter := counter + 1;
-			buff(to_integer(counter)) <= output;
-			wait for clk_period*10;
+			wait for clk_period;
+			if empty = '0' then
+				buff(to_integer(counter)) <= output;
+				counter := counter + 1;
+			else
+				re <= '0';
+			end if;
 		end loop;
 		re <= '0';
 		
