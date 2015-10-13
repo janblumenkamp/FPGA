@@ -46,11 +46,11 @@ architecture Behavioral of main is
 	--signal serial_rx_error: std_logic := '0'; -- Flag: Fehler beim Empfang? (muss ggf. manuell gecleart werden)
 	signal serial_rx_data_new: std_logic := '0'; -- Flag: befinden sich neue Daten im Signal?
 	--FIFO
---	signal fifo_rx_data: std_logic_vector(7 downto 0) := (others=>'0'); -- Ausgang des Fifos! Der Eingang ist direkt die serielle Schnittstelle!
---	signal fifo_rx_we: std_logic := '0'; -- write enable
---	signal fifo_rx_re: std_logic := '0'; -- read enable
---	signal fifo_rx_empty: std_logic;
---	signal fifo_rx_full: std_logic;
+	signal fifo_rx_data: std_logic_vector(7 downto 0) := (others=>'0'); -- Ausgang des Fifos! Der Eingang ist direkt die serielle Schnittstelle!
+	signal fifo_rx_we: std_logic := '0'; -- write enable
+	signal fifo_rx_re: std_logic := '0'; -- read enable
+	signal fifo_rx_empty: std_logic;
+	signal fifo_rx_full: std_logic;
 	
 	-- serielles Sendemodul
 	signal serial_tx_clk: std_logic := '0'; -- Clockrate der seriellen Schnittstelle (Baudrate)
@@ -97,31 +97,34 @@ begin
 																 ready=>serial_tx_ready,
 																 data=>serial_tx_data);
 	
---	FIFO_RX : entity work.fifo_256B port map(clk=>clk,
---														  rst=>rst,
---														  input=>serial_rx_data,
---														  we=>fifo_rx_we,
---														  output=>fifo_rx_data,
---														  re=>fifo_rx_re,
---														  empty=>fifo_rx_empty,
---														  full=>fifo_rx_full);
-														  
-	--PROC_RX: process (clk, rst)
-	--begin
-	--	if clk'event and clk = '1' then
-	--		if rst = '1' then -- Reset
-	--			fifo_rx_we <= '0';
-	--		else
-	--			if serial_rx_clear = '1' and serial_rx_data_new = '0' then -- wenn der reset für die serielle Leitung im letzten Takt ausgeführt wurde den reset löschen, damit neue Daten empfangen werden können.
-	--				serial_rx_clear <= '0';
-	--				fifo_rx_we <= '0';
-	--			elsif serial_rx_data_new = '1' then -- neue Daten vorhanden
-	--				serial_rx_clear <= '1'; -- Die Daten aus dem seriellen register liegen nun auf jeden Fall am EIngang des Fifos an, nun einfach we schalten und das Emfpangsmodul clearen
-	--				fifo_rx_we <= '1';
-	--			end if;
-	--		end if;
-	--	end if;
-	--end process;
+	FIFO_RX : entity work.fifo port map(clk=>clk,
+														  rst=>rst,
+														  input=>serial_rx_data,
+														  we=>fifo_rx_we,
+														  output=>fifo_rx_data,
+														  re=>fifo_rx_re,
+														  empty=>fifo_rx_empty,
+														  full=>fifo_rx_full);
+	
+	-- Prozess zum entgegennehmen der seriellen Daten undlegen in den FIFO
+	PROC_RX: process (clk, rst)
+	begin
+		if clk'event and clk = '1' then
+			if rst = '1' then -- Reset
+				fifo_rx_we <= '0';
+			else
+				if serial_rx_clear = '1' and serial_rx_data_new = '0' then -- wenn der reset für die serielle Leitung im letzten Takt ausgeführt wurde den reset löschen, damit neue Daten empfangen werden können.
+					serial_rx_clear <= '0';
+					fifo_rx_we <= '0';
+				elsif serial_rx_data_new = '1' then -- neue Daten vorhanden
+					if fifo_rx_full = '0' then -- wenn der fifo noch nicht voll ist!
+						fifo_rx_we <= '1';
+					end if;
+					serial_rx_clear <= '1'; -- Die Daten aus dem seriellen register liegen nun auf jeden Fall am EIngang des Fifos an, nun einfach we schalten und das Emfpangsmodul clearen
+				end if;
+			end if;
+		end if;
+	end process;
 	
 	CALC_LED : process (clk, rst) -- berechne auf und abschwellen der led Prozess (auf und abschwellen der LED)
 	begin
@@ -130,8 +133,7 @@ begin
 				count(0) <= "0000000000000000";
 				count(1) <= "0000000000000000";
 				
---				fifo_rx_re <= '0';
---				fifo_rx_we <= '0';
+				fifo_rx_re <= '0';
 				
 				led_value(0) <= (led_value(0)'range=>'0');
 				led_value(1) <= (led_value(1)'range=>'0');
@@ -153,37 +155,22 @@ begin
 				-- button
 				led(3) <= btn(2);				
 				
-				if serial_rx_clear = '1' and serial_rx_data_new = '0' then -- wenn der reset für die serielle Leitung im letzten Takt ausgeführt wurde den reset löschen, damit neue Daten empfangen werden können.
-					serial_rx_clear <= '0';
-					--fifo_rx_we <= '0';
-				elsif serial_rx_data_new = '1' then -- neue Daten vorhanden
-					led_value(2) <= serial_rx_data;
+				-- FIFO auslesen
+				if fifo_rx_empty = '0' and fifo_rx_re = '0' then -- fifo hat neue Daten und wir haben das Abfrage bit noch nicht gesetzt
+					fifo_rx_re <= '1';
+				elsif fifo_rx_empty = '0' and fifo_rx_re = '1' then -- fifo hat neue Daten und wir haben das Abfragebit gesetzt
+					led_value(2) <= fifo_rx_data;
 					
 					if serial_tx_ready = '1' then -- send input to tx
 						serial_tx_data <= serial_rx_data;
 						serial_tx_send <= '1';
 					end if;
 					
-					serial_rx_clear <= '1'; -- Die Daten aus dem seriellen register liegen nun auf jeden Fall am EIngang des Fifos an, nun einfach we schalten und das Emfpangsmodul clearen
-					--fifo_rx_we <= '1';
+					if fifo_rx_empty = '0' then -- wenn der fifo nun leer ist, darf auch nicht weiter ausgelesen weden
+						fifo_rx_re <= '0';
+					end if;
 				end if;
-				
-				-- serielle schnittstelle (Empfang)
---				if fifo_rx_empty = '0' and fifo_rx_re = '0' then -- fifo hat neue Daten und wir haben das Abfrage bit noch nicht gesetzt
---					fifo_rx_re <= '1';
---				elsif fifo_rx_empty = '0' and fifo_rx_re = '1' then -- fifo hat neue Daten und wir haben das Abfragebit gesetzt
---					led_value(2) <= fifo_rx_data;
---					
---					if serial_tx_ready = '1' then -- send input to tx
---						serial_tx_data <= fifo_rx_data;
---						serial_tx_send <= '1';
---					end if;
---					
---					if fifo_rx_empty = '0' then -- wenn der fifo nun leer ist, muss auch nicht weiter ausgelesen weden
---						fifo_rx_re <= '0';
---					end if;
---				end if;
---				
+
 				if serial_tx_ready = '0' then -- sendemodul hat begonnen, daten zu senden
 					serial_tx_send <= '0'; -- lösche senden flag, damit es nicht bald direkt erneut gesendet wird
 				end if;
