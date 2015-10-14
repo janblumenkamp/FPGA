@@ -68,7 +68,6 @@ begin
 				
 				-- read access
 				if re = '1' then -- es sollen Daten ausgelesen werden
-					output <= stack(to_integer(stack_read)); -- Daten übertragen
 					stack_read <= stack_read + 1; -- inkrementiere Adresse
 					
 					full <= '0';
@@ -79,6 +78,7 @@ begin
 						empty <= '0';
 					end if;
 				end if; -- neue Daten?
+				output <= stack(to_integer(stack_read)); -- auf dem Ausgang soll immer die aktuelle lese Adresse liegen
 			end if; -- reset?
 		end if; -- clock?
 	end process;

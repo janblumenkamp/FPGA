@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="/home/jblumenkamp/FPGA/avnet_spartana3/tutorium/main_test_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="main_test" />
+            <top_module name="numeric_std" />
+            <top_module name="std_logic_1164" />
+            <top_module name="std_logic_arith" />
+            <top_module name="std_logic_unsigned" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="7" />
+   <wvobject fp_name="/main_test/clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_test/serial_tx_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">serial_tx_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">serial_tx_data[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_test/SERIAL_TX/tx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">tx</obj_property>
+      <obj_property name="ObjectShortName">tx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_test/led" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">led[3:0]</obj_property>
+      <obj_property name="ObjectShortName">led[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="group34" type="group">
+      <obj_property name="label">Parser</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="group41" type="group">
+      <obj_property name="label">FIFO_RX</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/main_test/uut/FIFO_RX/we" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">we</obj_property>
+         <obj_property name="ObjectShortName">we</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/FIFO_RX/output" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">output[7:0]</obj_property>
+         <obj_property name="ObjectShortName">output[7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/FIFO_RX/input" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">input[7:0]</obj_property>
+         <obj_property name="ObjectShortName">input[7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/FIFO_RX/full" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">full</obj_property>
+         <obj_property name="ObjectShortName">full</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/FIFO_RX/empty" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">empty</obj_property>
+         <obj_property name="ObjectShortName">empty</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/FIFO_RX/stack" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">stack[0:31]</obj_property>
+         <obj_property name="ObjectShortName">stack[0:31]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group77" type="group">
+      <obj_property name="label">SERIAL_RX</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/main_test/uut/SERIAL_RX/newdata" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">newdata</obj_property>
+         <obj_property name="ObjectShortName">newdata</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/SERIAL_RX/data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">data[7:0]</obj_property>
+         <obj_property name="ObjectShortName">data[7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/SERIAL_RX/clr" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">clr</obj_property>
+         <obj_property name="ObjectShortName">clr</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>

@@ -1,1 +1,1 @@
--intstyle "ise" -incremental -o "/home/jblumenkamp/FPGA/avnet_spartana3/tutorium/fifo_test_isim_beh.exe" -prj "/home/jblumenkamp/FPGA/avnet_spartana3/tutorium/fifo_test_beh.prj" "work.fifo_test" 
+-intstyle "ise" -incremental -o "/home/jblumenkamp/FPGA/avnet_spartana3/tutorium/main_test_isim_beh.exe" -prj "/home/jblumenkamp/FPGA/avnet_spartana3/tutorium/main_test_beh.prj" "work.main_test" 
