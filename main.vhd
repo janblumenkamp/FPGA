@@ -238,12 +238,18 @@ begin
 						sendpackage_tx_data <= comm_reg(to_integer(unsigned(parser_rx_reg)));
 						sendpackage_tx_send <= '1';
 					end if;
+				else -- hier können spontane Sendeanfragen bearbeitet werden (damit eventuelle Anfragen nicht verloren gehen)
+					if btn /= comm_reg(4)(2 downto 0) then -- Änderung im Status einer der Buttons
+						comm_reg(4)(2 downto 0) <= btn; -- Speichere register und sende Datenpaket an den Master
+						sendpackage_tx_reg <= "0000100";
+						sendpackage_tx_rw <= '1'; -- write
+						sendpackage_tx_data <= "00000" & btn;
+						sendpackage_tx_send <= '1';
+					end if;
+					
+					comm_reg(5) <= "00000101"; -- temperatur lsb (todo)
+					comm_reg(6) <= "00000110"; -- temperatur msb
 				end if;
-				
-				comm_reg(4)(2 downto 0) <= btn;
-				comm_reg(4)(3) <= rst;
-				comm_reg(5) <= "00000101"; -- temperatur
-				comm_reg(6) <= "00000110";
 			end if;
 		end if;
 	end process;
