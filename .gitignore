@@ -41,6 +41,10 @@
 *_summary.xml
 *_usage.xml
 *_xst.xrpt
+*.cmd
+*.log
+*.wdb
+.directory
 
 # project-wide generated files
 *.gise

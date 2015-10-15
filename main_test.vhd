@@ -38,17 +38,27 @@ ARCHITECTURE behavior OF main_test IS
    signal clk : std_logic := '0';
    signal rst : std_logic := '0';
    signal rx : std_logic := '0';
-   signal btn : std_logic_vector(2 downto 0) := (others => '0');
+   signal btn : std_logic_vector(2 downto 0) := "011";
 
  	--Outputs
    signal tx : std_logic;
    signal led : std_logic_vector(3 downto 0);
 
 	-- intern
-	signal serial_tx_clk: std_logic;
-	signal serial_tx_send: std_logic := '0';
-	signal serial_tx_ready: std_logic;
-	signal serial_tx_data: std_logic_vector(7 downto 0) := "00000000";
+	-- serielles Empfangmodul
+	signal serial_rx_clk: std_logic := '0'; -- Clockrate der seriellen Schnittstelle (16 x der Baudrate)
+	signal serial_rx_clear: std_logic := '0'; -- löschen des newdata flags
+	signal serial_rx_data: std_logic_vector(7 downto 0) := (others=>'0'); -- Seriell empfangenes Signal (8 bit)
+	--signal serial_rx_error: std_logic := '0'; -- Flag: Fehler beim Empfang? (muss ggf. manuell gecleart werden)
+	signal serial_rx_data_new: std_logic := '0'; -- Flag: befinden sich neue Daten im Signal?
+	
+	signal serial_rx_received_data: std_logic_vector(7 downto 0);
+	
+	-- serielles Sendemodul
+	signal serial_tx_clk: std_logic := '0'; -- Clockrate der seriellen Schnittstelle (Baudrate)
+	signal serial_tx_send: std_logic := '0'; -- Clockrate der seriellen Schnittstelle (Baudrate)
+	signal serial_tx_ready: std_logic := '0'; -- Clockrate der seriellen Schnittstelle (Baudrate)
+	signal serial_tx_data: std_logic_vector(7 downto 0) := (others=>'0'); -- Clockrate der seriellen Schnittstelle (Baudrate)
 	
 	
    -- Clock period definitions
@@ -66,6 +76,13 @@ BEGIN
           btn => btn
         );
 
+		-- Frequenzteiler serielle Schnittstelle
+	FREQ_SERIAL_RX : entity work.freqdiv port map(
+		clkin=>clk,
+		rst=>rst,
+		clkout=>serial_rx_clk,
+		fac=>"0000000000110011"
+	); -- Frequenzteiler für UART Clock (16000000/(00110011 + 1) ~ 19200Baud*16)
 	FREQ_SERIAL_TX : entity work.freqdiv port map(
 		clkin=>clk,
 		rst=>rst,
@@ -73,7 +90,15 @@ BEGIN
 		fac=>"0000001100111111"
 	); -- Frequenzteiler für UART Clock (16000000/(1100111111 + 1) ~ 19200Baud)
 	
-	-- Serielles Sendemodul
+	-- Seriellen Module
+	SERIAL_RX : entity work.serial8n1_rx port map(
+		clk_baudx16=>serial_rx_clk,
+		rst=>rst,
+		rx=>tx,
+		clr=>serial_rx_clear,
+		data=>serial_rx_data,
+		newdata=>serial_rx_data_new
+	);
 	SERIAL_TX : entity work.serial8n1_tx port map(
 		clk_baud=>serial_tx_clk,
 		rst=>rst,
@@ -91,8 +116,10 @@ BEGIN
 		clk <= '1';
 		wait for clk_period/2;
    end process;
- 
+	
+	-- main process
 	simtx_process: process
+		-- ein byte senden
 		procedure transmit(data: in std_logic_vector(7 downto 0)) is
 		begin
 			wait for clk_period * 3;
@@ -103,23 +130,47 @@ BEGIN
 			serial_tx_send <= '0'; -- lösche senden flag, damit es nicht bald direkt erneut gesendet wird
 			wait until serial_tx_ready = '1';
 		end transmit;
-	begin
-		transmit("01010101");
-		wait for 1ms;
-		transmit("00000000");
-		wait for 1ms;
-		transmit("11000000");
-		wait for 1ms;
-		transmit("00010101"); -- checksum
-		wait for 3ms;
 		
+		-- senden eins ganzen Pakets inkl. Berechnung der Checksumme
+		procedure transmit_package(reg: in std_logic_vector(6 downto 0); rw: in std_logic; data: in std_logic_vector(7 downto 0)) is
+			variable checksum : unsigned (7 downto 0);
+		begin
+			transmit("01010101"); -- start
+			checksum := "01010101";
+			wait for 1 ms;
+			transmit(rw & reg); -- rw + reg
+			checksum := checksum + unsigned(rw & reg);
+			wait for 1 ms;
+			transmit(data); -- data
+			checksum := checksum + unsigned(data);
+			wait for 1 ms;
+			transmit(std_logic_vector(checksum)); -- checksum
+		end transmit_package;
+		
+	begin
+		wait for 1 ms;
+		
+		transmit_package(std_logic_vector(unsigned(to_unsigned(4, 7))), '0', "11000000");
+		wait for 2 ms;
+		transmit_package(std_logic_vector(unsigned(to_unsigned(3, 7))), '0', "10100000");
+		wait for 50 ms;
 	end process;
-
+	
+	-- verarbeiten eines empfangenen Pakets
+	chk_rec_proc: process
+	begin
+		wait until serial_rx_data_new = '1'; -- neue Daten vorhanden, die serielle schnittstelle ist direkt mit dem fifo verbunden, weshalb hier kein register kopiert werden muss.
+		serial_rx_received_data <= serial_rx_data;
+		serial_rx_clear <= '1'; -- Die Daten aus dem seriellen register liegen nun auf jeden Fall am EIngang des Fifos an, nun einfach we schalten und das Emfpangsmodul clearen
+		wait until serial_rx_data_new = '0';
+		serial_rx_clear <= '0';
+	end process;
+	
    -- Stimulus process
    stim_proc: process
    begin		
       rst <= '1';
-      wait for clk_period;	
+      wait for clk_period * 5;	
 		rst <= '0';
 		
       wait for clk_period*10;

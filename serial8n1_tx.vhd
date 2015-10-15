@@ -34,6 +34,7 @@ architecture Behavioral of serial8n1_tx is
 	type state_main is (idle, start, transmit); -- State machine für das Senden
 		signal current_state : state_main := idle;
 	signal send_cnt : std_logic_vector (3 downto 0) := "0000"; -- counter für das Senden der 8 bits und sichern des stop bits
+	signal tx_buffer : std_logic_vector (7 downto 0) := "00000000"; -- das Signal soll gepuffert werden, da unter Umständen schon neue Daten am eingang anliegen, obwohl das Signal noch nicht gesendet ist
 begin
 RECEIVE: process (clk_baud, rst, send)
 	begin
@@ -49,6 +50,7 @@ RECEIVE: process (clk_baud, rst, send)
 					when idle =>
 						if send = '1' then -- warte auf start signal
 							ready <= '0';
+							tx_buffer <= data;
 							current_state <= start;
 						end if;
 					when start => -- start bit
@@ -61,7 +63,7 @@ RECEIVE: process (clk_baud, rst, send)
 							ready <= '1'; -- ready
 							current_state <= idle; -- next state
 						else
-							tx <= data(to_integer(unsigned(send_cnt(2 downto 0))));
+							tx <= tx_buffer(to_integer(unsigned(send_cnt(2 downto 0))));
 							send_cnt <= std_logic_vector(unsigned(send_cnt) + 1); -- inkrementieren
 						end if;
 					when others =>

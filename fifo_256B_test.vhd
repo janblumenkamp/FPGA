@@ -90,10 +90,15 @@ BEGIN
 			end if;
 			wait for clk_period;
 		end loop;
-		we <= '0';
-		counter := "00000000";
-		
-		wait for clk_period*5;
+		we <= '0';		
+		wait;
+	end process;
+
+	-- Daten ausgeben
+	out_process: process
+		variable counter : unsigned (7 downto 0) := (others => '0');
+	begin
+		wait for clk_period*30;
 		
 		re <= '1';
 		for i in 1 to 260 loop
@@ -109,7 +114,7 @@ BEGIN
 		
 		wait;
 	end process;
-
+	
    -- Stimulus process
    stim_proc: process
    begin		

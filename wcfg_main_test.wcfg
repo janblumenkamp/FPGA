@@ -13,7 +13,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="7" />
+   <WVObjectSize size="9" />
    <wvobject fp_name="/main_test/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -22,60 +22,60 @@
       <obj_property name="ElementShortName">serial_tx_data[7:0]</obj_property>
       <obj_property name="ObjectShortName">serial_tx_data[7:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/main_test/SERIAL_TX/tx" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">tx</obj_property>
-      <obj_property name="ObjectShortName">tx</obj_property>
+   <wvobject fp_name="/main_test/serial_rx_received_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">serial_rx_received_data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">serial_rx_received_data[7:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/main_test/led" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">led[3:0]</obj_property>
       <obj_property name="ObjectShortName">led[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="group34" type="group">
-      <obj_property name="label">Parser</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
+   <wvobject fp_name="/main_test/uut/PARSER_RX/current_state" type="other" db_ref_id="1">
+      <obj_property name="ElementShortName">current_state</obj_property>
+      <obj_property name="ObjectShortName">current_state</obj_property>
    </wvobject>
-   <wvobject fp_name="group41" type="group">
-      <obj_property name="label">FIFO_RX</obj_property>
+   <wvobject fp_name="/main_test/uut/PARSER_RX/out_we" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">out_we</obj_property>
+      <obj_property name="ObjectShortName">out_we</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_test/uut/SERIAL_RX/data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">data[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_test/uut/SERIAL_TX/tx" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">tx</obj_property>
+      <obj_property name="ObjectShortName">tx</obj_property>
+   </wvobject>
+   <wvobject fp_name="group74" type="group">
+      <obj_property name="label">Senden</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/main_test/uut/FIFO_RX/we" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">we</obj_property>
-         <obj_property name="ObjectShortName">we</obj_property>
-      </wvobject>
-      <wvobject fp_name="/main_test/uut/FIFO_RX/output" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">output[7:0]</obj_property>
-         <obj_property name="ObjectShortName">output[7:0]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/main_test/uut/FIFO_RX/input" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">input[7:0]</obj_property>
-         <obj_property name="ObjectShortName">input[7:0]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/main_test/uut/FIFO_RX/full" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">full</obj_property>
-         <obj_property name="ObjectShortName">full</obj_property>
-      </wvobject>
-      <wvobject fp_name="/main_test/uut/FIFO_RX/empty" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">empty</obj_property>
-         <obj_property name="ObjectShortName">empty</obj_property>
-      </wvobject>
-      <wvobject fp_name="/main_test/uut/FIFO_RX/stack" type="array" db_ref_id="1">
+      <wvobject fp_name="/main_test/uut/FIFO_TX/stack" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">stack[0:31]</obj_property>
          <obj_property name="ObjectShortName">stack[0:31]</obj_property>
       </wvobject>
-   </wvobject>
-   <wvobject fp_name="group77" type="group">
-      <obj_property name="label">SERIAL_RX</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/main_test/uut/SERIAL_RX/newdata" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">newdata</obj_property>
-         <obj_property name="ObjectShortName">newdata</obj_property>
-      </wvobject>
-      <wvobject fp_name="/main_test/uut/SERIAL_RX/data" type="array" db_ref_id="1">
+      <wvobject fp_name="/main_test/uut/SERIAL_TX/data" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">data[7:0]</obj_property>
          <obj_property name="ObjectShortName">data[7:0]</obj_property>
       </wvobject>
-      <wvobject fp_name="/main_test/uut/SERIAL_RX/clr" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">clr</obj_property>
-         <obj_property name="ObjectShortName">clr</obj_property>
+      <wvobject fp_name="/main_test/uut/FIFO_TX/empty" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">empty</obj_property>
+         <obj_property name="ObjectShortName">empty</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/SERIAL_TX/current_state" type="other" db_ref_id="1">
+         <obj_property name="ElementShortName">current_state</obj_property>
+         <obj_property name="ObjectShortName">current_state</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/serial_tx_ready" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">serial_tx_ready</obj_property>
+         <obj_property name="ObjectShortName">serial_tx_ready</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/serial_tx_send" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">serial_tx_send</obj_property>
+         <obj_property name="ObjectShortName">serial_tx_send</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/fifo_tx_re" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fifo_tx_re</obj_property>
+         <obj_property name="ObjectShortName">fifo_tx_re</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>

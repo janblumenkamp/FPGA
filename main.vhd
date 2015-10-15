@@ -34,8 +34,8 @@ entity main is
 end main;
 
 architecture Behavioral of main is
-	type led_value_arr_t is array(3 downto 0) of std_logic_vector(7 downto 0);
-		signal led_value: led_value_arr_t := (others=>(others=>'0')); -- Helligkeit der LEDs
+	type comm_arr_t is array(6 downto 0) of std_logic_vector(7 downto 0); -- 4 LED, 1 btn (4 bit) und 2 temperatur (zukunft)
+		signal comm_reg: comm_arr_t  := (others=>(others=>'0')); -- Puffer/Register für die serielle Kommunikation
 	
 	-- serielles Empfangmodul
 	signal serial_rx_clk: std_logic := '0'; -- Clockrate der seriellen Schnittstelle (16 x der Baudrate)
@@ -43,12 +43,18 @@ architecture Behavioral of main is
 	signal serial_rx_data: std_logic_vector(7 downto 0) := (others=>'0'); -- Seriell empfangenes Signal (8 bit)
 	--signal serial_rx_error: std_logic := '0'; -- Flag: Fehler beim Empfang? (muss ggf. manuell gecleart werden)
 	signal serial_rx_data_new: std_logic := '0'; -- Flag: befinden sich neue Daten im Signal?
-	--FIFO
+	--FIFO empfang
 	signal fifo_rx_data: std_logic_vector(7 downto 0) := (others=>'0'); -- Ausgang des Fifos! Der Eingang ist direkt die serielle Schnittstelle!
 	signal fifo_rx_we: std_logic := '0'; -- write enable
 	signal fifo_rx_re: std_logic := '0'; -- read enable
 	signal fifo_rx_empty: std_logic;
 	signal fifo_rx_full: std_logic;
+	--FIFO sender
+	signal fifo_tx_data: std_logic_vector(7 downto 0) := (others=>'0'); -- Eingang des Fifos! Der Ausgang ist direkt mit der seriellen Schnittstelle verbunden!
+	signal fifo_tx_we: std_logic := '0'; -- write enable
+	signal fifo_tx_re: std_logic := '0'; -- read enable
+	signal fifo_tx_empty: std_logic;
+	signal fifo_tx_full: std_logic;
 	
 	-- serielles Sendemodul
 	signal serial_tx_clk: std_logic := '0'; -- Clockrate der seriellen Schnittstelle (Baudrate)
@@ -61,31 +67,37 @@ architecture Behavioral of main is
 	signal parser_rx_reg : std_logic_vector(6 downto 0); -- register des signals
 	signal parser_rx_rw : std_logic; -- möchte der Master Register lesen oder schreiben?
 	signal parser_rx_out : std_logic_vector(7 downto 0); -- wert des registers
+	-- sendpackage
+	signal sendpackage_tx_reg : std_logic_vector(6 downto 0) := (others=>'0');
+	signal sendpackage_tx_rw : std_logic := '0';
+	signal sendpackage_tx_data : std_logic_vector(7 downto 0) := (others=>'0');
+	signal sendpackage_tx_send : std_logic := '0';
+	signal sendpackage_tx_ready : std_logic;
 begin
 	-- PWM Module:
 	PWM_1 : entity work.pwm port map(
 		clk=>clk,
 		rst=>rst,
 		output=>led(0),
-		pwmval=>led_value(0)
+		pwmval=>comm_reg(0)
 	); -- PWM Modul 1
 	PWM_2 : entity work.pwm port map(
 		clk=>clk,
 		rst=>rst,
 		output=>led(1),
-		pwmval=>led_value(1)
+		pwmval=>comm_reg(1)
 	); -- PWM Modul 2
 	PWM_3 : entity work.pwm port map(
 		clk=>clk,
 		rst=>rst,
 		output=>led(2),
-		pwmval=>led_value(2)
+		pwmval=>comm_reg(2)
 	); -- PWM Modul 3
 	PWM_4 : entity work.pwm port map(
 		clk=>clk,
 		rst=>rst,
 		output=>led(3),
-		pwmval=>led_value(3)
+		pwmval=>comm_reg(3)
 	); -- PWM Modul 3
 												
 	-- Frequenzteiler serielle Schnittstelle
@@ -131,6 +143,17 @@ begin
 		empty=>fifo_rx_empty,
 		full=>fifo_rx_full
 	);
+	-- FIFO zum Puffern der zu sendenden Daten
+	FIFO_TX : entity work.fifo port map(
+		clk=>clk,
+		rst=>rst,
+		input=>fifo_tx_data,
+		we=>fifo_tx_we,
+		output=>serial_tx_data,
+		re=>fifo_tx_re,
+		empty=>fifo_tx_empty,
+		full=>fifo_tx_full
+	);
 		
 	-- Parser für das Protokoll
 	PARSER_RX : entity work.parser_rx port map(
@@ -145,6 +168,18 @@ begin
 		out_adr=>parser_rx_reg, -- register
 		out_data=>parser_rx_out
 	);
+	SENDPACKAGE_TX: entity work.sendpackage_tx port map(
+		clk=>clk,
+		rst=>rst,
+		fifo_data=>fifo_tx_data, -- verbindung zum eingang des fifo
+		fifo_full=>fifo_tx_full, -- ist der fifo voll?
+		fifo_we=>fifo_tx_we, -- schreibe daten in den fifo
+		reg=>sendpackage_tx_reg, -- register, das angesprochen werden soll
+		rw=>sendpackage_tx_rw, -- lese oder schreibe in das Register?
+		data=>sendpackage_tx_data, -- ggf. Daten (schreibzugriff)
+		send=>sendpackage_tx_send, -- übernehme daten (ein takt high/bis ready low ist)
+		ready=>sendpackage_tx_ready -- daten gesendet
+	);
 	
 	-- Prozess zum entgegennehmen der seriellen Daten undlegen in den FIFO
 	PROC_RX: process (clk, rst)
@@ -157,58 +192,58 @@ begin
 				if serial_rx_clear = '1' and serial_rx_data_new = '0' then -- wenn der reset für die serielle Leitung im letzten Takt ausgeführt wurde den reset löschen, damit neue Daten empfangen werden können.
 					serial_rx_clear <= '0';
 				elsif serial_rx_clear = '0' and serial_rx_data_new = '1' then -- neue Daten vorhanden, die serielle schnittstelle ist direkt mit dem fifo verbunden, weshalb hier kein register kopiert werden muss.
-				
-					--if serial_tx_ready = '1' then -- send input to tx
-					--	serial_tx_data <= serial_rx_data;
-					--	serial_tx_send <= '1';
-					--end if;
-					
 					if fifo_rx_full = '0' then -- wenn der fifo noch nicht voll ist!
 						fifo_rx_we <= '1';
 					end if;
 					serial_rx_clear <= '1'; -- Die Daten aus dem seriellen register liegen nun auf jeden Fall am EIngang des Fifos an, nun einfach we schalten und das Emfpangsmodul clearen
 				end if;
-				
-				--if serial_tx_ready = '0' then -- sendemodul hat begonnen, daten zu senden
-				--	serial_tx_send <= '0'; -- lösche senden flag, damit es nicht bald direkt erneut gesendet wird
-				--end if;
 			end if;
 		end if;
 	end process;
 	
-	PROC: process (clk, rst)
+	-- Prozess zum senden der seriellen Daten (übernahme aus den FIFO in die serielle Schnittstelle)
+	PROC_TX: process (clk, rst)
 	begin
 		if clk'event and clk = '1' then
 			if rst = '1' then -- Reset
-				led_value(0) <= (led_value(0)'range=>'0');
-				led_value(1) <= (led_value(1)'range=>'0');
-				led_value(2) <= (led_value(2)'range=>'0');
-				led_value(3) <= (led_value(3)'range=>'0');
+				serial_tx_send <= '0';
 			else
-				-- set led value from parser output
-				if parser_rx_we = '1' then
-					case parser_rx_reg is
-						when "0000000" =>
-							led_value(0) <= parser_rx_out;
-						when "0000001" =>
-							led_value(1) <= parser_rx_out;
-						when "0000010" =>
-							led_value(2) <= parser_rx_out;
-						when "0000011" =>
-							led_value(3) <= parser_rx_out;
-						when others=>
-					end case;
-					led_value(to_integer(unsigned(parser_rx_reg))) <= parser_rx_out;
-					
-					if serial_tx_ready = '1' then -- send input to tx
-						serial_tx_data(6 downto 0) <= parser_rx_reg;
+				fifo_tx_re <= '0'; -- darf nur für einen Takt 1 bleiben!
+				if serial_tx_ready = '0' and serial_tx_send = '1' then -- sendemodul sendet gerade, das senden flag kann nun gelöscht werden
+					serial_tx_send <= '0'; -- lösche senden flag, damit es nicht bald direkt erneut gesendet wird
+					fifo_tx_re <= '1'; -- inkrementiere adresse, nachdem gesendet wurde (bereite nächstes byte vor)
+				elsif serial_tx_ready = '1' and serial_tx_send = '0' then
+					if fifo_tx_empty = '0' then -- es liegen noch Daten im FIFO
+						-- der fifo ausgang ist direkt mit der seriellen Schnittstelle verbunden, es muss einfach nur die adresse inkrementiert werden
 						serial_tx_send <= '1';
 					end if;
-					
 				end if;
-				if serial_tx_ready = '0' then -- sendemodul hat begonnen, daten zu senden
-					serial_tx_send <= '0'; -- lösche senden flag, damit es nicht bald direkt erneut gesendet wird
+			end if;
+		end if;
+	end process;
+	
+	PROC_REG: process (clk, rst)
+	begin
+		if clk'event and clk = '1' then
+			if rst = '1' then -- Reset
+				comm_reg <= (others=>(others=>'0'));
+			else
+				sendpackage_tx_send <= '0'; -- wenn zuvor eine Leseanfrage gesendet wurde das flag nun auf jeden fall löschen (Sendeprozess muss eingeleitet worden sein).
+				if parser_rx_we = '1' then -- Paket empfangen
+					if parser_rx_rw = '1' then -- write access
+						comm_reg(to_integer(unsigned(parser_rx_reg))) <= parser_rx_out;
+					else -- es sollte ein Paket gelesen werden
+						sendpackage_tx_reg <= parser_rx_reg;
+						sendpackage_tx_rw <= '1';
+						sendpackage_tx_data <= comm_reg(to_integer(unsigned(parser_rx_reg)));
+						sendpackage_tx_send <= '1';
+					end if;
 				end if;
+				
+				comm_reg(4)(2 downto 0) <= btn;
+				comm_reg(4)(3) <= rst;
+				comm_reg(5) <= "00000101"; -- temperatur
+				comm_reg(6) <= "00000110";
 			end if;
 		end if;
 	end process;
