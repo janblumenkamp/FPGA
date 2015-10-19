@@ -34,7 +34,7 @@ entity main is
 end main;
 
 architecture Behavioral of main is
-	type comm_arr_t is array(6 downto 0) of std_logic_vector(7 downto 0); -- 4 LED, 1 btn (4 bit) und 2 temperatur (zukunft)
+	type comm_arr_t is array(7 downto 0) of std_logic_vector(7 downto 0); -- 4 LED, 1 btn (4 bit) und 2 temperatur (zukunft)
 		signal comm_reg: comm_arr_t  := (others=>(others=>'0')); -- Puffer/Register für die serielle Kommunikation
 	
 	-- serielles Empfangmodul
@@ -231,11 +231,11 @@ begin
 				sendpackage_tx_send <= '0'; -- wenn zuvor eine Leseanfrage gesendet wurde das flag nun auf jeden fall löschen (Sendeprozess muss eingeleitet worden sein).
 				if parser_rx_we = '1' then -- Paket empfangen
 					if parser_rx_rw = '1' then -- write access
-						comm_reg(to_integer(unsigned(parser_rx_reg))) <= parser_rx_out;
+						comm_reg(to_integer(unsigned(parser_rx_reg(2 downto 0)))) <= parser_rx_out;
 					else -- es sollte ein Paket gelesen werden
 						sendpackage_tx_reg <= parser_rx_reg;
 						sendpackage_tx_rw <= '1';
-						sendpackage_tx_data <= comm_reg(to_integer(unsigned(parser_rx_reg)));
+						sendpackage_tx_data <= comm_reg(to_integer(unsigned(parser_rx_reg(2 downto 0))));
 						sendpackage_tx_send <= '1';
 					end if;
 				else -- hier können spontane Sendeanfragen bearbeitet werden (damit eventuelle Anfragen nicht verloren gehen)
@@ -247,6 +247,7 @@ begin
 						sendpackage_tx_send <= '1';
 					end if;
 					
+					comm_reg(0) <= "00001101"; -- led (test)
 					comm_reg(5) <= "00000101"; -- temperatur lsb (todo)
 					comm_reg(6) <= "00000110"; -- temperatur msb
 				end if;

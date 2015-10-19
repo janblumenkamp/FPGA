@@ -38,7 +38,7 @@ ARCHITECTURE behavior OF main_test IS
    signal clk : std_logic := '0';
    signal rst : std_logic := '0';
    signal rx : std_logic := '0';
-   signal btn : std_logic_vector(2 downto 0) := "011";
+   signal btn : std_logic_vector(2 downto 0) := "000";
 
  	--Outputs
    signal tx : std_logic;
@@ -150,9 +150,9 @@ BEGIN
 	begin
 		wait for 1 ms;
 		
-		transmit_package(std_logic_vector(unsigned(to_unsigned(4, 7))), '0', "11000000");
-		wait for 2 ms;
-		transmit_package(std_logic_vector(unsigned(to_unsigned(3, 7))), '0', "10100000");
+		transmit_package(std_logic_vector(unsigned(to_unsigned(0, 7))), '0', "00000000");
+		--wait for 2 ms;
+		--transmit_package(std_logic_vector(unsigned(to_unsigned(1, 7))), '0', "10100000");
 		wait for 50 ms;
 	end process;
 	
