@@ -13,7 +13,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="10" />
+   <WVObjectSize size="11" />
    <wvobject fp_name="/main_test/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -121,5 +121,9 @@
          <obj_property name="ElementShortName">data_out[7:0]</obj_property>
          <obj_property name="ObjectShortName">data_out[7:0]</obj_property>
       </wvobject>
+   </wvobject>
+   <wvobject fp_name="/main_test/uut/tmp100_initialized" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tmp100_initialized[1:0]</obj_property>
+      <obj_property name="ObjectShortName">tmp100_initialized[1:0]</obj_property>
    </wvobject>
 </wave_config>

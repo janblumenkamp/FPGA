@@ -85,10 +85,13 @@ architecture Behavioral of main is
 	signal i2c_master_data_in : std_logic_vector(7 downto 0) := (others=>'0'); -- Daten vom Master zum Slave
 	signal i2c_master_data_out : std_logic_vector(7 downto 0) := (others=>'0'); -- Daten vom Slave zum Master
 	-- tmp100 Temperatursensor
-	signal i2c_master_delay : unsigned(18 downto 0) := "0000111111111111111"; -- Delay zwischen dem Abfragen zweier Werte
+	signal i2c_master_delay : unsigned(19 downto 0) := (others => '0'); -- Delay zwischen dem Abfragen zweier Werte (am ANfang auch zur Initialisierung benötigt)
 	type i2c_read_state_t is (idle, transmit_reg, read_msb, read_lsb); -- State machine für eine Read Transaktion zum Temperatursensor
 		signal tmp_100_read_state : i2c_read_state_t := idle;
 	signal tmp100_data : std_logic_vector(15 downto 0) := (others=>'0'); -- Rohe Daten des Temperatursensors zum Übertragen in die Register
+	type i2c_write_state_t is (idle, transmit_reg, transmit_dat); -- State machine für eine write Transaktion zum Temperatursensor (1 byte)
+		signal tmp_100_write_state : i2c_write_state_t := idle;
+	signal tmp100_initialized : unsigned(1 downto 0) := "00"; -- Wurde der Sensor initialisiert? Muss vektor sein, weil das I2C Modul erst eine Trash-Wandlung braucht...
 begin
 	-- PWM Module:
 	PWM_1 : entity work.pwm port map(
@@ -259,47 +262,79 @@ begin
 		end if;
 	end process;
 	
-	-- Prozess für das Abfragen des Temperatursensors über I2C
-	PROC_I2C: process (clk, rst)
+	-- Prozess für das Abfragen und initialisieren des Temperatursensors über I2C
+	PROC_TEMP: process (clk, rst)
 	begin
 		if clk'event and clk = '1' then
 			if rst = '1' then -- Reset
 				tmp_100_read_state <= idle;
 				i2c_master_transmit <= '0';
+				tmp100_initialized <= "00";
 			else
-				case tmp_100_read_state is
-					when idle =>
-						if i2c_master_delay = 0 then -- Timer abgelaufen, neue Transaktion
-							i2c_master_slave_adr <= "1001000"; -- Adresse des Temperatursensors
-							i2c_master_rw <= '0'; -- Schreibzugriff (schreiben des Registers, welches ausgelesen werden soll)
-							i2c_master_data_in <= "00000000"; -- Temperaturregister
-							i2c_master_transmit <= '1'; -- starte transaktion
-							if i2c_master_ready = '0' then -- jetzt hat das Modul die Transaktion begonnen, nun darf der state gewechselt werden
-								i2c_master_delay <= "0000111111111111111"; --  Timer neu starten
-								tmp_100_read_state <= transmit_reg;
+				if tmp100_initialized = "10" then -- Initialisierung zum Sensor abgeschlosse
+					case tmp_100_read_state is
+						when idle =>
+							if i2c_master_delay = 0 then -- Timer abgelaufen, neue Transaktion
+								i2c_master_slave_adr <= "1001000"; -- Adresse des Temperatursensors
+								i2c_master_rw <= '0'; -- Schreibzugriff (schreiben des Registers, welches ausgelesen werden soll)
+								i2c_master_data_in <= "00000000"; -- Temperaturregister
+								i2c_master_transmit <= '1'; -- starte transaktion
+								if i2c_master_ready = '0' then -- jetzt hat das Modul die Transaktion begonnen, nun darf der state gewechselt werden
+									i2c_master_delay <= "11111111111111111111"; --  Timer neu starten
+									tmp_100_read_state <= transmit_reg;
+								end if;
+							else
+								i2c_master_delay <= i2c_master_delay - 1;
 							end if;
-						else
-							i2c_master_delay <= i2c_master_delay - 1;
-						end if;
-					when transmit_reg =>
-						if i2c_master_ready = '0' then -- Übertragung beendet
-							i2c_master_rw <= '1'; -- Schalte nun um auf Lesezugriff
-							tmp_100_read_state <= read_msb;
-						end if;
-					when read_msb =>
-						if i2c_master_ready = '0' then -- Byte eingelesen
-							tmp100_data(7 downto 0) <= i2c_master_data_out;
-							tmp_100_read_state <= read_lsb;
-						end if;
-					when read_lsb =>
-						if i2c_master_ready = '0' then -- Byte eingelesen
-							tmp100_data(15 downto 8) <= i2c_master_data_out;
-							i2c_master_transmit <= '0'; -- Wir wollen nichts mehr senden o.ä. - modul kann stop generieren
+						when transmit_reg =>
+							if i2c_master_ready = '0' then -- Übertragung beendet
+								i2c_master_rw <= '1'; -- Schalte nun um auf Lesezugriff
+								tmp_100_read_state <= read_msb;
+							end if;
+						when read_msb =>
+							if i2c_master_ready = '0' then -- Byte eingelesen
+								tmp100_data(7 downto 0) <= i2c_master_data_out;
+								tmp_100_read_state <= read_lsb;
+							end if;
+						when read_lsb =>
+							if i2c_master_ready = '0' then -- Byte eingelesen
+								tmp100_data(15 downto 8) <= i2c_master_data_out;
+								i2c_master_transmit <= '0'; -- Wir wollen nichts mehr senden o.ä. - modul kann stop generieren
+								tmp_100_read_state <= idle;
+							end if;
+						when others =>
 							tmp_100_read_state <= idle;
-						end if;
-					when others =>
-						tmp_100_read_state <= idle;
-				end case;
+					end case;
+				else -- Initialisieren
+					case tmp_100_write_state is
+						when idle =>
+							if i2c_master_delay = 0 then -- Timer abgelaufen, neue Transaktion
+								i2c_master_slave_adr <= "1001000"; -- Adresse des Temperatursensors
+								i2c_master_rw <= '0'; -- Schreibzugriff (schreiben des Registers, welches beschrieben werden soll)
+								i2c_master_data_in <= "00000001"; -- Konfigurationsregister
+								i2c_master_transmit <= '1'; -- starte transaktion
+								if i2c_master_ready = '0' then -- jetzt hat das Modul die Transaktion begonnen, nun darf der state gewechselt werden
+									i2c_master_delay <= "00001111111111111111"; --  Timer neu starten
+									tmp_100_write_state <= transmit_reg;
+								end if;
+							else
+								i2c_master_delay <= i2c_master_delay - 1;
+							end if;
+						when transmit_reg =>
+							if i2c_master_ready = '0' then -- Übertragung beendet
+								i2c_master_data_in <= "01000000"; -- 11 bit Auflösung
+								tmp_100_write_state <= transmit_dat;
+							end if;
+						when transmit_dat =>
+							if i2c_master_ready = '0' then -- Byte eingelesen
+								i2c_master_transmit <= '0'; -- Wir wollen nichts mehr senden o.ä. - modul kann stop generieren
+								tmp_100_write_state <= idle;
+								tmp100_initialized <= tmp100_initialized + 1; -- Mache initialisierung mehrmals, weil die erste Übertragung immer fehlschlägt...
+							end if;
+						when others =>
+							tmp_100_write_state <= idle;
+					end case;
+				end if;
 			end if;
 		end if;
 	end process;
