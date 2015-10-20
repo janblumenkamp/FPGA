@@ -43,7 +43,11 @@ ARCHITECTURE behavior OF main_test IS
  	--Outputs
    signal tx : std_logic;
    signal led : std_logic_vector(3 downto 0);
-
+	signal scl : std_logic;
+	
+	-- inouts
+	signal sda : std_logic;
+	
 	-- intern
 	-- serielles Empfangmodul
 	signal serial_rx_clk: std_logic := '0'; -- Clockrate der seriellen Schnittstelle (16 x der Baudrate)
@@ -73,7 +77,9 @@ BEGIN
           rx => rx,
           tx => tx,
           led => led,
-          btn => btn
+          btn => btn,
+			 scl => scl,
+			 sda => sda
         );
 
 		-- Frequenzteiler serielle Schnittstelle

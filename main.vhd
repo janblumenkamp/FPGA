@@ -29,12 +29,14 @@ entity main is
 			  rx : in STD_LOGIC;
            tx : out STD_LOGIC;
            led : out  STD_LOGIC_VECTOR (3 downto 0); -- 4 LEDs
-			  btn : in STD_LOGIC_VECTOR (2 downto 0) -- 3 Push buttons
+			  btn : in STD_LOGIC_VECTOR (2 downto 0); -- 3 Push buttons
+			  scl : out STD_LOGIC;
+			  sda : inout STD_LOGIC
 			 );
 end main;
 
 architecture Behavioral of main is
-	type comm_arr_t is array(7 downto 0) of std_logic_vector(7 downto 0); -- 4 LED, 1 btn (4 bit) und 2 temperatur (zukunft)
+	type comm_arr_t is array(6 downto 0) of std_logic_vector(7 downto 0); -- 4 LED, 1 btn (4 bit) und 2 temperatur
 		signal comm_reg: comm_arr_t  := (others=>(others=>'0')); -- Puffer/Register für die serielle Kommunikation
 	
 	-- serielles Empfangmodul
@@ -73,6 +75,20 @@ architecture Behavioral of main is
 	signal sendpackage_tx_data : std_logic_vector(7 downto 0) := (others=>'0');
 	signal sendpackage_tx_send : std_logic := '0';
 	signal sendpackage_tx_ready : std_logic;
+	
+	-- i2c master
+	signal i2c_master_clockx4 : std_logic;
+	signal i2c_master_slave_adr : std_logic_vector(6 downto 0) := (others=>'0'); -- Slave Adresse
+	signal i2c_master_rw : std_logic; -- Schreib oder Lesezugriff
+	signal i2c_master_transmit : std_logic; -- Starte transmit
+	signal i2c_master_ready : std_logic; -- hat das Modul die aktuelle transaktion beendet?
+	signal i2c_master_data_in : std_logic_vector(7 downto 0) := (others=>'0'); -- Daten vom Master zum Slave
+	signal i2c_master_data_out : std_logic_vector(7 downto 0) := (others=>'0'); -- Daten vom Slave zum Master
+	-- tmp100 Temperatursensor
+	signal i2c_master_delay : unsigned(18 downto 0) := "0000111111111111111"; -- Delay zwischen dem Abfragen zweier Werte
+	type i2c_read_state_t is (idle, transmit_reg, read_msb, read_lsb); -- State machine für eine Read Transaktion zum Temperatursensor
+		signal tmp_100_read_state : i2c_read_state_t := idle;
+	signal tmp100_data : std_logic_vector(15 downto 0) := (others=>'0'); -- Rohe Daten des Temperatursensors zum Übertragen in die Register
 begin
 	-- PWM Module:
 	PWM_1 : entity work.pwm port map(
@@ -113,6 +129,12 @@ begin
 		clkout=>serial_tx_clk,
 		fac=>"0000001100111111"
 	); -- Frequenzteiler für UART Clock (16000000/(1100111111 + 1) ~ 19200Baud)
+	FREQ_I2C_4 : entity work.freqdiv port map(
+		clkin=>clk,
+		rst=>rst,
+		clkout=>i2c_master_clockx4,
+		fac=>"0000000000100111"
+	); -- Frequenzteiler für I2C Clock (400 kHz -> 50kHz I2C Clock)
 	
 	-- Seriellen Module
 	SERIAL_RX : entity work.serial8n1_rx port map(
@@ -181,6 +203,21 @@ begin
 		ready=>sendpackage_tx_ready -- daten gesendet
 	);
 	
+	-- i2c master Modul
+	I2C_MASTER: entity work.i2c_master PORT MAP (
+		clk => clk,
+		rst => rst,
+		clk_i2c_4 => i2c_master_clockx4,
+		adr => i2c_master_slave_adr,
+		rw => i2c_master_rw,
+		transmit => i2c_master_transmit,
+		ready => i2c_master_ready,
+		data_in => i2c_master_data_in,
+		data_out => i2c_master_data_out,
+		scl => scl,
+		sda => sda
+	);
+	
 	-- Prozess zum entgegennehmen der seriellen Daten undlegen in den FIFO
 	PROC_RX: process (clk, rst)
 	begin
@@ -222,6 +259,52 @@ begin
 		end if;
 	end process;
 	
+	-- Prozess für das Abfragen des Temperatursensors über I2C
+	PROC_I2C: process (clk, rst)
+	begin
+		if clk'event and clk = '1' then
+			if rst = '1' then -- Reset
+				tmp_100_read_state <= idle;
+				i2c_master_transmit <= '0';
+			else
+				case tmp_100_read_state is
+					when idle =>
+						if i2c_master_delay = 0 then -- Timer abgelaufen, neue Transaktion
+							i2c_master_slave_adr <= "1001000"; -- Adresse des Temperatursensors
+							i2c_master_rw <= '0'; -- Schreibzugriff (schreiben des Registers, welches ausgelesen werden soll)
+							i2c_master_data_in <= "00000000"; -- Temperaturregister
+							i2c_master_transmit <= '1'; -- starte transaktion
+							if i2c_master_ready = '0' then -- jetzt hat das Modul die Transaktion begonnen, nun darf der state gewechselt werden
+								i2c_master_delay <= "0000111111111111111"; --  Timer neu starten
+								tmp_100_read_state <= transmit_reg;
+							end if;
+						else
+							i2c_master_delay <= i2c_master_delay - 1;
+						end if;
+					when transmit_reg =>
+						if i2c_master_ready = '0' then -- Übertragung beendet
+							i2c_master_rw <= '1'; -- Schalte nun um auf Lesezugriff
+							tmp_100_read_state <= read_msb;
+						end if;
+					when read_msb =>
+						if i2c_master_ready = '0' then -- Byte eingelesen
+							tmp100_data(7 downto 0) <= i2c_master_data_out;
+							tmp_100_read_state <= read_lsb;
+						end if;
+					when read_lsb =>
+						if i2c_master_ready = '0' then -- Byte eingelesen
+							tmp100_data(15 downto 8) <= i2c_master_data_out;
+							i2c_master_transmit <= '0'; -- Wir wollen nichts mehr senden o.ä. - modul kann stop generieren
+							tmp_100_read_state <= idle;
+						end if;
+					when others =>
+						tmp_100_read_state <= idle;
+				end case;
+			end if;
+		end if;
+	end process;
+	
+	-- Prozess für die Register und das verarbeiten von Anfragen über die serielle Schnittstelle
 	PROC_REG: process (clk, rst)
 	begin
 		if clk'event and clk = '1' then
@@ -232,24 +315,32 @@ begin
 				if parser_rx_we = '1' then -- Paket empfangen
 					if parser_rx_rw = '1' then -- write access
 						comm_reg(to_integer(unsigned(parser_rx_reg(2 downto 0)))) <= parser_rx_out;
-					else -- es sollte ein Paket gelesen werden
+					else -- es sollte ein Paket gelesen werden. eigentlich müsste hier noch auf ready flag geprüft werden...
 						sendpackage_tx_reg <= parser_rx_reg;
 						sendpackage_tx_rw <= '1';
 						sendpackage_tx_data <= comm_reg(to_integer(unsigned(parser_rx_reg(2 downto 0))));
 						sendpackage_tx_send <= '1';
 					end if;
 				else -- hier können spontane Sendeanfragen bearbeitet werden (damit eventuelle Anfragen nicht verloren gehen)
-					if btn /= comm_reg(4)(2 downto 0) then -- Änderung im Status einer der Buttons
+					if btn /= comm_reg(4)(2 downto 0) and sendpackage_tx_ready = '1' then -- Änderung im Status einer der Buttons und serielle schnittstelle frei
 						comm_reg(4)(2 downto 0) <= btn; -- Speichere register und sende Datenpaket an den Master
 						sendpackage_tx_reg <= "0000100";
 						sendpackage_tx_rw <= '1'; -- write
 						sendpackage_tx_data <= "00000" & btn;
 						sendpackage_tx_send <= '1';
+					elsif tmp100_data(7 downto 0) /= comm_reg(5) and sendpackage_tx_ready = '1' then -- Low Byte des Temperatursensors
+						comm_reg(5) <= tmp100_data(7 downto 0);
+						sendpackage_tx_reg <= "0000101";
+						sendpackage_tx_rw <= '1'; -- write
+						sendpackage_tx_data <= tmp100_data(7 downto 0);
+						sendpackage_tx_send <= '1';
+					elsif tmp100_data(15 downto 8) /= comm_reg(6) and sendpackage_tx_ready = '1' then -- High Byte des Temperatursensors
+						comm_reg(6) <= tmp100_data(15 downto 8);
+						sendpackage_tx_reg <= "0000110";
+						sendpackage_tx_rw <= '1'; -- write
+						sendpackage_tx_data <= tmp100_data(15 downto 8);
+						sendpackage_tx_send <= '1';	
 					end if;
-					
-					comm_reg(0) <= "00001101"; -- led (test)
-					comm_reg(5) <= "00000101"; -- temperatur lsb (todo)
-					comm_reg(6) <= "00000110"; -- temperatur msb
 				end if;
 			end if;
 		end if;
