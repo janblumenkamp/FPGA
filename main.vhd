@@ -322,7 +322,7 @@ begin
 							end if;
 						when transmit_reg =>
 							if i2c_master_ready = '0' then -- Übertragung beendet
-								i2c_master_data_in <= "01000000"; -- 11 bit Auflösung
+								i2c_master_data_in <= "01100000"; -- 12 bit Auflösung
 								tmp_100_write_state <= transmit_dat;
 							end if;
 						when transmit_dat =>
