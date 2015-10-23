@@ -175,7 +175,7 @@ BEGIN
    -- Stimulus process
    stim_proc: process
    begin		
-      rst <= '1';
+      --rst <= '1';
       wait for clk_period * 5;	
 		rst <= '0';
 		

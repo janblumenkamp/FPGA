@@ -85,13 +85,13 @@ begin
 					
 					case state is
 						when idle =>
-							if transmit = '1' then
+							if transmit = '1' then -- Beginne Übertragung
 								state <= gen_start;
 								adr_int <= adr;
 								rw_int <= rw;
 								data_in_int <= data_in;
 								cnt_byte <= "1001";
-								ready <= '0';
+								ready <= '0'; -- signalisiere übergeordnetem Modul, dass Register übernommen wurden
 							end if;
 						when gen_start =>
 							if cnt_clk = "001" then
