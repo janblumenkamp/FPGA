@@ -33,12 +33,18 @@ NET "rx" IOSTANDARD = LVCMOS33;
 
 NET "tx" IOSTANDARD = LVCMOS33;
 
-# PlanAhead Generated IO constraints 
 
 NET "scl" IOSTANDARD = LVCMOS33;
 NET "sda" IOSTANDARD = LVCMOS33;
 
-# PlanAhead Generated physical constraints 
 
 NET "scl" LOC = M14;
 NET "sda" LOC = M13;
+
+# PlanAhead Generated physical constraints 
+
+NET "ws2812" LOC = C4;
+
+# PlanAhead Generated IO constraints 
+
+NET "ws2812" IOSTANDARD = LVTTL;

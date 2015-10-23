@@ -156,7 +156,8 @@ BEGIN
 	begin
 		wait for 1 ms;
 		
-		transmit_package(std_logic_vector(unsigned(to_unsigned(0, 7))), '0', "00000000");
+		--transmit_package(std_logic_vector(unsigned(to_unsigned(0, 7))), '0', "00000000");
+		transmit_package(std_logic_vector(unsigned(to_unsigned(7, 7))), '1', "11111111"); -- Schreibzugriff auf RGB LED R Kanal
 		--wait for 2 ms;
 		--transmit_package(std_logic_vector(unsigned(to_unsigned(1, 7))), '0', "10100000");
 		wait for 50 ms;

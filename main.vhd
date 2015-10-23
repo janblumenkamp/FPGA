@@ -31,12 +31,13 @@ entity main is
            led : out  STD_LOGIC_VECTOR (3 downto 0); -- 4 LEDs
 			  btn : in STD_LOGIC_VECTOR (2 downto 0); -- 3 Push buttons
 			  scl : out STD_LOGIC;
-			  sda : inout STD_LOGIC
+			  sda : inout STD_LOGIC;
+			  ws2812 : out STD_LOGIC
 			 );
 end main;
 
 architecture Behavioral of main is
-	type comm_arr_t is array(6 downto 0) of std_logic_vector(7 downto 0); -- 4 LED, 1 btn (4 bit) und 2 temperatur
+	type comm_arr_t is array(9 downto 0) of std_logic_vector(7 downto 0); -- 4 LED, 1 btn (4 bit), 2 temperatur, 3 led rgb
 		signal comm_reg: comm_arr_t  := (others=>(others=>'0')); -- Puffer/Register für die serielle Kommunikation
 	
 	-- serielles Empfangmodul
@@ -91,7 +92,10 @@ architecture Behavioral of main is
 	signal tmp100_data : std_logic_vector(15 downto 0) := (others=>'0'); -- Rohe Daten des Temperatursensors zum Übertragen in die Register
 	type i2c_write_state_t is (idle, transmit_reg, transmit_dat); -- State machine für eine write Transaktion zum Temperatursensor (1 byte)
 		signal tmp_100_write_state : i2c_write_state_t := idle;
-	signal tmp100_initialized : unsigned(1 downto 0) := "00"; -- Wurde der Sensor initialisiert? Muss vektor sein, weil das I2C Modul erst eine Trash-Wandlung braucht...
+	signal tmp100_initialized : std_logic := '0'; -- Wurde der Sensor initialisiert?
+	
+	-- WS2812
+	signal ws2812_transmit : std_logic := '0';
 begin
 	-- PWM Module:
 	PWM_1 : entity work.pwm port map(
@@ -221,6 +225,16 @@ begin
 		sda => sda
 	);
 	
+	-- WS2812 RGB LED
+	RGB_LED: entity work.ws2812 PORT MAP (
+		led_r => comm_reg(7),
+		led_g => comm_reg(8),
+		led_b => comm_reg(9),
+		transmit => ws2812_transmit,
+		rst => rst,
+		clk_16MHz => clk,
+		sig => ws2812
+	);
 	-- Prozess zum entgegennehmen der seriellen Daten undlegen in den FIFO
 	PROC_RX: process (clk, rst)
 	begin
@@ -269,9 +283,9 @@ begin
 			if rst = '1' then -- Reset
 				tmp_100_read_state <= idle;
 				i2c_master_transmit <= '0';
-				tmp100_initialized <= "00";
+				tmp100_initialized <= '0';
 			else
-				if tmp100_initialized = "10" then -- Initialisierung zum Sensor abgeschlosse
+				if tmp100_initialized = '1' then -- Initialisierung zum Sensor abgeschlosse
 					case tmp_100_read_state is
 						when idle =>
 							if i2c_master_delay = 0 then -- Timer abgelaufen, neue Transaktion
@@ -329,7 +343,7 @@ begin
 							if i2c_master_ready = '0' then -- Byte eingelesen
 								i2c_master_transmit <= '0'; -- Wir wollen nichts mehr senden o.ä. - modul kann stop generieren
 								tmp_100_write_state <= idle;
-								tmp100_initialized <= tmp100_initialized + 1; -- Mache initialisierung mehrmals, weil die erste Übertragung immer fehlschlägt...
+								tmp100_initialized <= '1'; -- Initialisierung abgschlossen
 							end if;
 						when others =>
 							tmp_100_write_state <= idle;
@@ -346,10 +360,17 @@ begin
 			if rst = '1' then -- Reset
 				comm_reg <= (others=>(others=>'0'));
 			else
+				ws2812_transmit <= '0'; -- wenn zuvor eine Schreibanfrage gesendet wurde, das flag nun auf jeden Fall löschen
 				sendpackage_tx_send <= '0'; -- wenn zuvor eine Leseanfrage gesendet wurde das flag nun auf jeden fall löschen (Sendeprozess muss eingeleitet worden sein).
 				if parser_rx_we = '1' then -- Paket empfangen
 					if parser_rx_rw = '1' then -- write access
-						comm_reg(to_integer(unsigned(parser_rx_reg(2 downto 0)))) <= parser_rx_out;
+						comm_reg(to_integer(unsigned(parser_rx_reg(3 downto 0)))) <= parser_rx_out;
+						if parser_rx_reg = "0000111" or -- LED RGB Register geändert -> RGB LED neu übertragen
+							parser_rx_reg = "0001000" or
+							parser_rx_reg = "0001001" then
+							
+							ws2812_transmit <= '1';
+						end if;
 					else -- es sollte ein Paket gelesen werden. eigentlich müsste hier noch auf ready flag geprüft werden...
 						sendpackage_tx_reg <= parser_rx_reg;
 						sendpackage_tx_rw <= '1';

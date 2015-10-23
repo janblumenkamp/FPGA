@@ -13,7 +13,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="11" />
+   <WVObjectSize size="12" />
    <wvobject fp_name="/main_test/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -121,9 +121,25 @@
          <obj_property name="ElementShortName">data_out[7:0]</obj_property>
          <obj_property name="ObjectShortName">data_out[7:0]</obj_property>
       </wvobject>
+      <wvobject fp_name="/main_test/uut/tmp100_initialized" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">tmp100_initialized</obj_property>
+         <obj_property name="ObjectShortName">tmp100_initialized</obj_property>
+      </wvobject>
    </wvobject>
-   <wvobject fp_name="/main_test/uut/tmp100_initialized" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">tmp100_initialized[1:0]</obj_property>
-      <obj_property name="ObjectShortName">tmp100_initialized[1:0]</obj_property>
+   <wvobject fp_name="group48" type="group">
+      <obj_property name="label">WS2812</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/main_test/uut/ws2812" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">ws2812</obj_property>
+         <obj_property name="ObjectShortName">ws2812</obj_property>
+      </wvobject>
+      <wvobject fp_name="/main_test/uut/ws2812_transmit" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">ws2812_transmit</obj_property>
+         <obj_property name="ObjectShortName">ws2812_transmit</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/main_test/uut/parser_rx_we" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">parser_rx_we</obj_property>
+      <obj_property name="ObjectShortName">parser_rx_we</obj_property>
    </wvobject>
 </wave_config>
