@@ -40,21 +40,20 @@ ARCHITECTURE behavior OF fifo_test IS
    signal we : std_logic := '0';
    signal re : std_logic := '0';
 
-	-- buffer
-	type buff_t is array (0 to 255) of std_logic_vector(7 downto 0);
-		signal buff : buff_t := (others => (others => '0'));
-		
- 	--Outputs
+   -- buffer
+   type buff_t is array (0 to 255) of std_logic_vector(7 downto 0);
+   signal buff : buff_t := (others => (others => '0'));
+        
+   --Outputs
    signal output : std_logic_vector(7 downto 0);
    signal empty : std_logic;
    signal full : std_logic;
 
    -- Clock period definitions
    constant clk_period : time := 62.5 ns;
- 
 BEGIN
  
-	-- Instantiate the Unit Under Test (UUT)
+    -- Instantiate the Unit Under Test (UUT)
    uut: entity work.fifo PORT MAP (
           clk => clk,
           rst => rst,
@@ -69,64 +68,57 @@ BEGIN
    -- Clock process definitions
    clk_process :process
    begin
-		clk <= '0';
-		wait for clk_period/2;
-		clk <= '1';
-		wait for clk_period/2;
+        clk <= '0';
+        wait for clk_period/2;
+        clk <= '1';
+        wait for clk_period/2;
    end process;
 
-	-- Daten einlesen
-	inp_process: process
-		variable counter : unsigned (7 downto 0) := (others => '0');
-	begin
-		wait for clk_period*10; -- reset
-		we <= '1';
-		for i in 1 to 260 loop
-			if full = '0' then
-				input <= std_logic_vector(counter);
-				counter := counter + 1;
-			else
-				we <= '0';
-			end if;
-			wait for clk_period;
-		end loop;
-		we <= '0';		
-		wait;
-	end process;
+    -- read data
+    inp_process: process
+        variable counter : unsigned (7 downto 0) := (others => '0');
+    begin
+        wait for clk_period*10; -- reset
+        we <= '1';
+        for i in 1 to 260 loop
+            if full = '0' then
+                input <= std_logic_vector(counter);
+                counter := counter + 1;
+            else
+                we <= '0';
+            end if;
+            wait for clk_period;
+        end loop;
+        we <= '0';        
+        wait;
+    end process;
 
-	-- Daten ausgeben
-	out_process: process
-		variable counter : unsigned (7 downto 0) := (others => '0');
-	begin
-		wait for clk_period*30;
-		
-		re <= '1';
-		for i in 1 to 260 loop
-			wait for clk_period;
-			if empty = '0' then
-				buff(to_integer(counter)) <= output;
-				counter := counter + 1;
-			else
-				re <= '0';
-			end if;
-		end loop;
-		re <= '0';
-		
-		wait;
-	end process;
-	
-   -- Stimulus process
+    -- data out
+    out_process: process
+        variable counter : unsigned (7 downto 0) := (others => '0');
+    begin
+        wait for clk_period*30;
+        
+        re <= '1';
+        for i in 1 to 260 loop
+            wait for clk_period;
+            if empty = '0' then
+                buff(to_integer(counter)) <= output;
+                counter := counter + 1;
+            else
+                re <= '0';
+            end if;
+        end loop;
+        re <= '0';
+        
+        wait;
+    end process;
+    
    stim_proc: process
-   begin		
+   begin        
       rst <= '1';
-      wait for clk_period;	
-		rst <= '0';
-      
-      wait for clk_period*10;
-
-      -- insert stimulus here 
-
+      wait for clk_period;    
+      rst <= '0';
       wait;
    end process;
-
 END;

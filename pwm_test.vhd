@@ -42,7 +42,7 @@ ARCHITECTURE behavior OF pwm_test IS
    signal rst : std_logic := '0';
    signal pwmval : std_logic_vector(7 downto 0) := "00000000";
 
- 	--Outputs
+     --Outputs
    signal output : std_logic;
 
    -- Clock period definitions
@@ -50,37 +50,37 @@ ARCHITECTURE behavior OF pwm_test IS
  
 BEGIN
  
-	-- Instantiate the Unit Under Test (UUT)
+    -- Instantiate the Unit Under Test (UUT)
    uut: entity work.pwm PORT MAP (
           clk => clk,
           rst => rst,
           output => output,
           pwmval => pwmval
-			 );
+             );
 
    -- pwm incr
    incr :process
    begin
-		wait for 1 ms;
-		pwmval <= std_logic_vector(unsigned(pwmval)+15);
+        wait for 1 ms;
+        pwmval <= std_logic_vector(unsigned(pwmval)+15);
    end process;
  
 -- Clock process definitions
    clk_process :process
    begin
-		clk <= '0';
-		wait for clk_period/2;
-		clk <= '1';
-		wait for clk_period/2;
+        clk <= '0';
+        wait for clk_period/2;
+        clk <= '1';
+        wait for clk_period/2;
    end process;
  
 
    -- Stimulus process
    stim_proc: process
-   begin		
+   begin        
       rst <= '1';
-      wait for clk_period;	
-		rst <= '0';
+      wait for clk_period;    
+        rst <= '0';
       
       wait for clk_period*10;
 

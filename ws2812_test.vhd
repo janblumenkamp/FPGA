@@ -60,7 +60,7 @@ ARCHITECTURE behavior OF ws2812_test IS
    signal rst : std_logic := '0';
    signal clk_16MHz : std_logic := '0';
 
- 	--Outputs
+     --Outputs
    signal sig : std_logic;
 
    -- Clock period definitions
@@ -68,7 +68,7 @@ ARCHITECTURE behavior OF ws2812_test IS
  
 BEGIN
  
-	-- Instantiate the Unit Under Test (UUT)
+    -- Instantiate the Unit Under Test (UUT)
    uut: ws2812 PORT MAP (
           led_r => led_r,
           led_g => led_g,
@@ -82,24 +82,24 @@ BEGIN
    -- Clock process definitions
    clk_16MHz_process :process
    begin
-		clk_16MHz <= '0';
-		wait for clk_16MHz_period/2;
-		clk_16MHz <= '1';
-		wait for clk_16MHz_period/2;
+        clk_16MHz <= '0';
+        wait for clk_16MHz_period/2;
+        clk_16MHz <= '1';
+        wait for clk_16MHz_period/2;
    end process;
  
 
    -- Stimulus process
    stim_proc: process
-   begin		
+   begin        
       -- hold reset state for 100 ns.
       led_g <= "10000001";
-		led_r <= "00000000";
-		led_b <= "10000001";
-		transmit <= '1';
-		wait for clk_16MHz_period;
+        led_r <= "00000000";
+        led_b <= "10000001";
+        transmit <= '1';
+        wait for clk_16MHz_period;
       transmit <= '0';
-		
+        
       -- insert stimulus here 
 
       wait;

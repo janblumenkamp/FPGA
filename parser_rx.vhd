@@ -29,22 +29,22 @@ use IEEE.NUMERIC_STD.ALL;
 entity parser_rx is
     Port ( clk : in  STD_LOGIC;
            rst : in  STD_LOGIC;
-           input_raw : in  STD_LOGIC_VECTOR (7 downto 0); -- input vom fifo
-           re_raw : out  STD_LOGIC; -- lese vom fifo
-           no_newdata_raw : in  STD_LOGIC; -- ist der fifo leer?
+           input_raw : in  STD_LOGIC_VECTOR (7 downto 0); -- fifo input
+           re_raw : out  STD_LOGIC; -- read fifo
+           no_newdata_raw : in  STD_LOGIC; -- fifo empty?
 			  
-           out_we : out  STD_LOGIC; -- für einen takt high, wenn ein neues paket geparst wurde
-			  out_rw : out STD_LOGIC; -- read oder write access verlangt?
+           out_we : out  STD_LOGIC; -- one cycle high after a new package was parsed
+			     out_rw : out STD_LOGIC; -- master wants ro read or write?
            out_adr : out  STD_LOGIC_VECTOR (6 downto 0); -- register
-           out_data : out  STD_LOGIC_VECTOR (7 downto 0)); -- wert
+           out_data : out  STD_LOGIC_VECTOR (7 downto 0)); -- value/data of register
 end parser_rx;
 
 architecture Behavioral of parser_rx is
-	type state_pars is (idle, get_reg_rw, get_data, get_chk); -- State machine des Parsers
+	type state_pars is (idle, get_reg_rw, get_data, get_chk); -- State machine
 		signal current_state : state_pars := idle;
-	signal re_raw_sig : std_logic := '0'; -- re vom fifo (spiegelung)
+	signal re_raw_sig : std_logic := '0'; -- re of fifo
 	
-	signal chk_calc : unsigned(7 downto 0); -- Prüfsummenberechnung
+	signal chk_calc : unsigned(7 downto 0); -- checksum
 	
 begin
 	PARSER: process (clk, rst)
@@ -54,31 +54,31 @@ begin
 				current_state <= idle;
 				re_raw_sig <= '0';
 			else
-				-- FIFO auslesen
-				out_we <= '0'; -- nur für einen takt high
+				-- read FIFO
+				out_we <= '0';
 				
-				if no_newdata_raw = '0' and re_raw_sig = '0' then -- fifo hat neue Daten und wir haben das Abfrage bit noch nicht gesetzt
+				if no_newdata_raw = '0' and re_raw_sig = '0' then -- FIFO has new data and the query bit is not yet set
 					re_raw_sig <= '1';
 					re_raw <= '1';
-				elsif no_newdata_raw = '0' and re_raw_sig = '1' then -- fifo hat neue Daten und wir haben das Abfragebit gesetzt
+				elsif no_newdata_raw = '0' and re_raw_sig = '1' then -- FIFO has new data and we already set the query bit
 					-- sm
 					case current_state is 
 						when idle =>
 							if input_raw = "01010101" then -- start byte
-								chk_calc <= unsigned(input_raw); -- Resette checksumme
+								chk_calc <= unsigned(input_raw); -- reset checksum
 								current_state <= get_reg_rw;
 							end if;
 						when get_reg_rw =>
 							out_rw <= input_raw(7);
 							out_adr <= input_raw(6 downto 0);
-							chk_calc <= chk_calc + unsigned(input_raw); --Addiere zu checksumme
+							chk_calc <= chk_calc + unsigned(input_raw);
 							current_state <= get_data;
 						when get_data =>
 							out_data <= input_raw;
-							chk_calc <= chk_calc + unsigned(input_raw); --Addiere zu checksumme
+							chk_calc <= chk_calc + unsigned(input_raw);
 							current_state <= get_chk;
 						when get_chk =>
-							if chk_calc = unsigned(input_raw) then -- wenn die Checksumme übereinstimmt enable flag setzen, damit Ergebnisse weiter verarbeitet werden können
+							if chk_calc = unsigned(input_raw) then -- checksum matches: set enable flag to process result
 								out_we <= '1';
 							end if;
 							current_state <= idle;

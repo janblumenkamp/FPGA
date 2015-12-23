@@ -52,17 +52,15 @@ ARCHITECTURE behavior OF freqdiv_tes IS
    --Inputs
    signal clkin : std_logic := '0';
    signal fac : std_logic_vector(15 downto 0) := "0000000000000010";
-	signal rst : std_logic := '0';
+   signal rst : std_logic := '0';
 
- 	--Outputs
+     --Outputs
    signal clkout : std_logic;
 
    -- Clock period definitions
    constant clkin_period : time := 62.5 ns; --16MHz
- 
 BEGIN
- 
-	-- Instantiate the Unit Under Test (UUT)
+    -- Instantiate the Unit Under Test (UUT)
    uut: freqdiv PORT MAP (
           clkin => clkin,
           rst => rst,
@@ -73,24 +71,20 @@ BEGIN
    -- Clock process definitions
    clkin_process :process
    begin
-		clkin <= '0';
-		wait for clkin_period/2;
-		clkin <= '1';
-		wait for clkin_period/2;
+        clkin <= '0';
+        wait for clkin_period/2;
+        clkin <= '1';
+        wait for clkin_period/2;
    end process;
- 
 
    -- Stimulus process
    stim_proc: process
-   begin		
-      --wait for 100 ms;	
-		rst <= '1';
+   begin        
+      --wait for 100 ms;    
+        rst <= '1';
       wait for clkin_period;
-		rst <= '0';
-      
-      -- insert stimulus here 
-
+        rst <= '0';
+        
       wait;
    end process;
-
 END;

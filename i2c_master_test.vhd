@@ -46,10 +46,10 @@ ARCHITECTURE behavior OF i2c_master_test IS
    signal transmit : std_logic := '0';
    signal data_in : std_logic_vector(7 downto 0) := (others => '0');
 
-	--BiDirs
+    --BiDirs
    signal sda : std_logic;
 
- 	--Outputs
+     --Outputs
    signal ready : std_logic;
    signal data_out : std_logic_vector(7 downto 0);
    signal scl : std_logic;
@@ -59,15 +59,15 @@ ARCHITECTURE behavior OF i2c_master_test IS
  
 BEGIN
  
-	-- Frequenzteiler serielle Schnittstelle
-	FREQ_I2C_4 : entity work.freqdiv port map(
-		clkin=>clk,
-		rst=>rst,
-		clkout=>clk_i2c_4,
-		fac=>"0000000000100111"
-	); -- Frequenzteiler für I2C Clock (50 kHz)
-	
-	-- Instantiate the Unit Under Test (UUT)
+    -- Frequenzteiler serielle Schnittstelle
+    FREQ_I2C_4 : entity work.freqdiv port map(
+        clkin=>clk,
+        rst=>rst,
+        clkout=>clk_i2c_4,
+        fac=>"0000000000100111"
+    ); -- Frequenzteiler für I2C Clock (50 kHz)
+    
+    -- Instantiate the Unit Under Test (UUT)
    uut: entity work.i2c_master PORT MAP (
           clk => clk,
           rst => rst,
@@ -81,38 +81,38 @@ BEGIN
           scl => scl,
           sda => sda
         );
-	
+    
    -- Clock process definitions
    clk_process :process
    begin
-		clk <= '0';
-		wait for clk_period/2;
-		clk <= '1';
-		wait for clk_period/2;
+        clk <= '0';
+        wait for clk_period/2;
+        clk <= '1';
+        wait for clk_period/2;
    end process;
  
-	data_ser: process -- Hauptprozess serielle Schnittstelle
-	begin
-		wait for 1ms;
-		data_in <= "00000010";
-		rw <= '0';
-		adr <= "1001000";
-		transmit <= '1';
-		wait until ready = '0';
-		wait until ready = '1';
-		data_in <= "10000010";
-		wait until ready = '0';
-		transmit <= '0';
-		wait;
-	end process;
-	
+    data_ser: process -- main process serial interface
+    begin
+        wait for 1ms;
+        data_in <= "00000010";
+        rw <= '0';
+        adr <= "1001000";
+        transmit <= '1';
+        wait until ready = '0';
+        wait until ready = '1';
+        data_in <= "10000010";
+        wait until ready = '0';
+        transmit <= '0';
+        wait;
+    end process;
+    
    -- Stimulus process
    stim_proc: process
-   begin		
+   begin        
       -- hold reset state for 100 ns.
-		rst <= '1';
-      wait for clk_period * 2;	
-		rst <= '0';
+        rst <= '1';
+      wait for clk_period * 2;    
+        rst <= '0';
       
       wait;
    end process;

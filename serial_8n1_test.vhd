@@ -57,7 +57,7 @@ ARCHITECTURE behavior OF serial_send_test IS
    signal send : std_logic := '0';
    signal data : std_logic_vector(7 downto 0) := (others => '0');
 
- 	--Outputs
+     --Outputs
    signal tx : std_logic;
    signal ready : std_logic;
 
@@ -66,7 +66,7 @@ ARCHITECTURE behavior OF serial_send_test IS
  
 BEGIN
  
-	-- Instantiate the Unit Under Test (UUT)
+    -- Instantiate the Unit Under Test (UUT)
    uut: serial8n1_tx PORT MAP (
           clk_baud => clk_baud,
           rst => rst,
@@ -79,30 +79,30 @@ BEGIN
    -- Clock process definitions
    clk_baud_process :process
    begin
-		clk_baud <= '0';
-		wait for clk_baud_period/2;
-		clk_baud <= '1';
-		wait for clk_baud_period/2;
+        clk_baud <= '0';
+        wait for clk_baud_period/2;
+        clk_baud <= '1';
+        wait for clk_baud_period/2;
    end process;
  
-	
-	putdata: process
-	begin
-		wait for 1 ms;
-		data <= "10101010";
-		send <= '1';
-		wait for clk_baud_period;
-		send <= '0';
-		wait until ready = '1';
-	end process;
-	
+    
+    putdata: process
+    begin
+        wait for 1 ms;
+        data <= "10101010";
+        send <= '1';
+        wait for clk_baud_period;
+        send <= '0';
+        wait until ready = '1';
+    end process;
+    
    -- Stimulus process
    stim_proc: process
-   begin		
+   begin        
       -- hold reset state for 100 ns.
-		rst <= '1';
-      wait for 0.7 ms;	
-		rst <= '0';
+        rst <= '1';
+      wait for 0.7 ms;    
+        rst <= '0';
       
       wait for clk_baud_period*10;
 
